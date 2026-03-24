@@ -1,0 +1,16 @@
+# 核心大文件与日志目录
+checkpoints/
+results/
+test_results/
+logs_benchmark/
+
+# 运行时的临时日志
+pipeline_main.log
+result_long_term_forecast.txt
+
+# Python 和 IDE 缓存
+__pycache__/
+.ipynb_checkpoints/
+.vscode/
+*.pyc
+*.npy
