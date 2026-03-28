@@ -1,6 +1,6 @@
 import torch.nn as nn
 import torch.nn.functional as F
-
+from torch.utils.checkpoint import checkpoint
 
 class ConvLayer(nn.Module):
     def __init__(self, c_in):

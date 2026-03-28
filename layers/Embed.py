@@ -7,7 +7,7 @@ from itertools import repeat
 import collections
 # import ml_collections
 import torch.fft
-
+from torch.utils.checkpoint import checkpoint
 class PositionalEmbedding(nn.Module):
     def __init__(self, d_model, max_len=5000):
         super(PositionalEmbedding, self).__init__()

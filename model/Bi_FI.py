@@ -6,6 +6,7 @@ from layers.SelfAttention_Family import FullAttention, AttentionLayer
 from layers.Embed import DataEmbedding_inverted, DataEmbedding
 import numpy as np
 import time
+from torch.utils.checkpoint import checkpoint
 
 class Model(nn.Module):
     """

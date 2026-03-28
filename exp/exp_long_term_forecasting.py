@@ -240,7 +240,7 @@ class Exp_Long_Term_Forecast(Exp_Basic):
             f.write(setting + "  \n")
             f.write('mse:{}, mae:{}'.format(mse, mae) + '\n\n')
 
-        np.save(res_folder + 'metrics.npy', np.array([mae, mse, rmse, mape, mspe]))
-        np.save(res_folder + 'pred.npy', preds)
-        np.save(res_folder + 'true.npy', trues)
+        #np.save(res_folder + 'metrics.npy', np.array([mae, mse, rmse, mape, mspe]))
+        #np.save(res_folder + 'pred.npy', preds)
+        #np.save(res_folder + 'true.npy', trues)
         return

@@ -1,3 +1,0 @@
-pip install --user torch_geometric
-pip install --user pandas numpy matplotlib scikit-learn einops sympy scipy
-pip install --user nvitop

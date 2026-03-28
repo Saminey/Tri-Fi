@@ -6,7 +6,7 @@ from utils.masking import TriangularCausalMask, ProbMask
 from reformer_pytorch import LSHSelfAttention
 from einops import rearrange
 import csv
-
+from torch.utils.checkpoint import checkpoint
 # Code implementation from https://github.com/thuml/Flowformer
 class FlowAttention(nn.Module):
     def __init__(self, attention_dropout=0.1):
@@ -267,7 +267,6 @@ class ProbAttention(nn.Module):
 
         return context.contiguous(), attn
 
-
 class AttentionLayer(nn.Module):
     def __init__(self, attention, d_model, n_heads, d_keys=None,
                  d_values=None):
@@ -283,6 +282,15 @@ class AttentionLayer(nn.Module):
         self.out_projection = nn.Linear(d_values * n_heads, d_model)
         self.n_heads = n_heads
 
+    # 为了让 checkpoint 能把 kwargs 传进去，定义一个包裹函数
+    def _inner_attn_wrapper(self, q, k, v, attn_mask, tau, delta):
+        return self.inner_attention(
+            q, k, v,
+            attn_mask=attn_mask,
+            tau=tau,
+            delta=delta
+        )
+
     def forward(self, queries, keys, values, attn_mask, tau=None, delta=None):
         # print(queries.shape)
         B, L, _ = queries.shape
@@ -293,17 +301,33 @@ class AttentionLayer(nn.Module):
         keys = self.key_projection(keys).view(B, S, H, -1)
         values = self.value_projection(values).view(B, S, H, -1)
 
-        out, attn = self.inner_attention(
-            queries,
-            keys,
-            values,
-            attn_mask,
-            tau=tau,
-            delta=delta
-        )
+        # ==========================================
+        # 激活梯度检查点 (Gradient Checkpointing)
+        # ==========================================
+        if self.training:
+            # 必须保证输入的 Tensor 允许梯度回传
+            for t in [queries, keys, values]:
+                if not t.requires_grad:
+                    t.requires_grad_(True)
+            
+            # 使用 checkpoint 包裹 inner_attention 的前向传播
+            # 注意: checkpoint 不直接支持 kwargs, 所以我们写了一个包装器并传递固定参数
+            out, attn = checkpoint(
+                self._inner_attn_wrapper,
+                queries, keys, values, attn_mask, tau, delta,
+                use_reentrant=False
+            )
+        else:
+            # 验证/测试模式，直接计算
+            out, attn = self.inner_attention(
+                queries, keys, values, attn_mask, tau=tau, delta=delta
+            )
+        # ==========================================
+
         out = out.view(B, L, -1)
 
         return self.out_projection(out), attn
+
 
 
 class ReformerLayer(nn.Module):
@@ -334,4 +358,3 @@ class ReformerLayer(nn.Module):
         B, N, C = queries.shape
         queries = self.attn(self.fit_length(queries))[:, :N, :]
         return queries, None
-
